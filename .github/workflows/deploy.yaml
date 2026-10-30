@@ -42,9 +42,9 @@ jobs:
           script: |
             BUILD_NUM="${{ github.run_number }}"
             aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com
-            sudo docker rmi -f $(docker images -q)
-            sudo docker pull ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com/demo-repo:build-$BUILD_NUM
             sudo docker stop myapp || true
             sudo docker rm myapp || true
+            sudo docker rmi -f $(docker images -q)
+            sudo docker pull ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com/demo-repo:build-$BUILD_NUM
             sudo docker run -d --name myapp -p 80:80 ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com/demo-repo:build-$BUILD_NUM
             
