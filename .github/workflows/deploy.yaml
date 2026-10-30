@@ -25,13 +25,13 @@ jobs:
           aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com
       
       - name: Build docker image
-        run: docker build -t devops-platform:${GITHUB_SHA::7} .
+        run: docker build -t devops-platform:latest .
       
       - name: Image Tag
-        run: docker tag devops-platform:${GITHUB_SHA::7} ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com/demo-repo:v1
+        run: docker tag devops-platform:latest ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com/demo-repo:build-${{ github.run_number }}
 
       - name: Push the Image
-        run: docker push ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com/demo-repo:v1
+        run: docker push ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com/demo-repo:build-${{ github.run_number }}
       
       - name: Execute remote SSH commands using SSH key
         uses: appleboy/ssh-action@v1
@@ -40,6 +40,11 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           script: |
+            BUILD_NUM="${{ github.run_number }}"
             aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com
-            sudo docker pull ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com/demo-repo:v1
-            sudo docker run -d --name myapp -p 80:80 ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com/demo-repo:v1
+            sudo docker rmi -f $(docker images -q)
+            sudo docker pull ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com/demo-repo:build-$BUILD_NUM
+            sudo docker stop myapp || true
+            sudo docker rm myapp || true
+            sudo docker run -d --name myapp -p 80:80 ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.ap-south-1.amazonaws.com/demo-repo:build-$BUILD_NUM
+            
